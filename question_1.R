@@ -70,9 +70,10 @@ for(k in seq_along(r.step.options)){
       steps.taken <- steps.taken - 1
     }
   }
+  
   idx[r.step.distance] <- steps.taken
   
-  # if(remaining.distance > remaining.n.r.steps){
+  if(remaining.distance > remaining.n.r.steps){
   #   print(paste("r step distance", r.step.distance))
   #   print(paste("r step distance", remaining.distance))
   #   print(paste("remaning number of steps", remaining.n.r.steps))

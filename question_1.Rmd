@@ -1,0 +1,206 @@
+---
+title: "Code for Question 1"
+output: 
+  html_notebook:
+    number_sections: true
+    toc: 2
+    toc_float: true
+---
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(tidy = TRUE)
+getwd()
+```
+
+# Code
+
+This section works through the code for one example (Question 1a, the first number `65`).
+
+The rest of the subquestions were solved using the same code as below.
+
+## Library imports
+
+```{r echo = TRUE, results='hide'}
+library(stringr)
+
+library(purrr)
+```
+
+## Getting inputs
+
+
+```{r}
+r <- 9  # number of rows
+
+c <- 9 # number of columns
+
+orig.distance <- 65 # original sum to reach = original distance to traverse
+
+n.d.step <- r - 1  # number of downward steps
+
+orig.n.r.step <- c - 1  # original number of rightward steps required; this variable holds the unchanged initial number of steps required
+
+
+n.r.step <- orig.n.r.step # current number of rightward steps required;  this quantity will later change due to progressive reduction through iteration
+
+print(n.r.step)
+
+d.step.sum <- r*(r+1)/2  # the contribution of the downward steps to the sum
+
+print(d.step.sum)
+
+distance.togo <- orig.distance - d.step.sum # distance remaining to be covered solely via rightward steps
+
+print(distance.togo)
+
+## sanity check; checks if the distance can be traversed using the available number of downward and rightward steps
+
+## if the floor division of distance.togo by the number of rows is greater than the number of steps required, then the summed number cannnot be reached within the total number of operations available, both rightward and downward
+ 
+if((distance.togo %/% r) > n.r.step){
+  print("Summed number cannot be reached within the available total number of operations.")
+}
+
+idx <- vector(mode = "numeric", length = r) # records how many number of rightward operations/steps are to be performed per row; the index of each element corresponds to row number, the elements itself corresponds to the number of rightward operations to be performed in that row number
+
+print(idx)
+
+r.step.options <- 1:r # each element is a specific distance that can be traversed per rightward step; different combinations of these distances will be required to traverse the entirety of distance.togo
+
+r.step.options <- sort(r.step.options, decreasing = TRUE)
+
+print(r.step.options)
+```
+
+
+
+## Loop for discovering number of rightward operations required
+
+This loop is the main workhorse of the code.
+
+
+```{r}
+for(k in seq_along(r.step.options)){
+  
+  r.step.distance <- r.step.options[k]
+  steps.taken <- distance.togo %/% r.step.distance
+  distance.covered <- r.step.distance*steps.taken
+  
+  while(steps.taken > 0) {
+    distance.covered <- r.step.distance*steps.taken
+    remaining.distance <- distance.togo - distance.covered
+    remaining.n.r.steps <-n.r.step - steps.taken
+    
+    if(remaining.distance >= remaining.n.r.steps) {
+      break
+    } else {
+      steps.taken <- steps.taken - 1
+    }
+  }
+  
+  idx[r.step.distance] <- steps.taken
+  
+  if(remaining.distance > remaining.n.r.steps){
+    distance.togo <- remaining.distance
+    n.r.step <- remaining.n.r.steps
+
+  }else if(remaining.distance == remaining.n.r.steps){
+    distance.togo <- remaining.distance
+    n.r.step <- remaining.n.r.steps
+    r.step.distance <- 1
+    steps.taken <- distance.togo %/% r.step.distance
+    distance.covered <- r.step.distance*steps.taken
+    remaining.distance <- distance.togo - distance.covered
+    remaining.n.r.steps <-n.r.step - steps.taken
+    distance.togo <- remaining.distance
+    n.r.step <- remaining.n.r.steps
+    idx[r.step.distance] <- steps.taken
+  }
+  
+  if(n.r.step == 0 & distance.togo == 0 & sum(idx) == (c-1)){
+    print("Done")
+    break
+  }
+}
+```
+
+After this loop, the number and position of rightward operations required is stored in the variable `idx`.
+
+The data stored in `idx` is basically saying that:
+
+1. In row 1, 6 rightward operations are required (please note that R uses 1-based indexing; hence, row index 1 is the actual first row).
+2. In row 5, one rightward operation is required and;
+3. In the final row 9, one more rightward operation is required.
+
+```{r}
+idx
+```
+
+
+## Building the string
+
+The following code builds the string from the data stored in `idx`.
+
+First, verifying whether the number of rightward steps stored in `idx` match the total available number of rightward steps we are allowed to take.
+
+Summing up the entries in `idx` should give the total number of rightward steps we are taking, which should equal the number of columns -1.
+
+```{r}
+sum(idx) == (c-1)
+```
+
+Since we have broken down our total distance covered into the distance covered by downward steps and the distance covered by rightward steps,
+
+$$
+total\_distance = rightward\_distance + downward\_distance \\
+
+\therefore downward\_distance = total\_distance - rightward\_distance
+$$
+
+The next piece of code subtracts the distance that we traversed using only the rightward steps from the original distance that we had to travel (i.e., the sum we had to reach); the value of this should be equal the distance covered by downward steps.
+
+```{r}
+orig.distance - sum((1:length(idx))*idx) == d.step.sum
+```
+
+Finally, we get to building the actual string.
+
+Note that two library based functions have been used in the code below:
+
+1. `map` from the library `purrr`. This function allows us to iterate over a vector or a list. [Link to the online documentation.](https://purrr.tidyverse.org/reference/map.html)
+2. `str_c` from the library `stringr`. This function allows us to concatenate several strings together. [Link to the online documentation.](https://stringr.tidyverse.org/reference/str_c.html)
+
+```{r}
+all.segments <- purrr::map(.x = seq_along(idx), .f= ~{ # iterating over all the indices of idx
+  if(.x < length(idx)){   # if any index except the last one
+    string.segment <- c(rep("R", idx[.x]), "D") # add as many rightward operations as the number at that index, and one downward operation
+    return(string.segment)
+  } else { # for the last index
+    string.segment <- c(rep("R", idx[.x])) # just add the rightward operations; no downward operations, since it is the last row
+    return(string.segment)
+  }
+})
+
+print(all.segments)
+
+all.segments <- purrr::map(.x = all.segments, .f = ~paste0(.x, collapse = ""))  # collapse vector into single string for each element in all.segments
+
+print(all.segments)
+
+final_string <- do.call(what = str_c, args = all.segments) # concatentate all the string segments together
+
+print(final_string)
+str_length(final_string)
+```
+
+# Question 1
+
+## Question 1a
+
+Solving question 1a and writing the output to the code file below.
+
+```{r}
+
+```
+
