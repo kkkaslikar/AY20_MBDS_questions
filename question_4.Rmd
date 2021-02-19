@@ -1,0 +1,474 @@
+---
+title: "Code for Question 4"
+output: 
+  html_notebook:
+    number_sections: true
+    toc: 2
+    toc_float: true
+---
+
+
+```{r echo = FALSE, results='hide'}
+knitr::opts_chunk$set(tidy = TRUE)
+getwd()
+```
+
+# Code
+
+This section works through the code for one example (Question 1a, the first number `65`).
+
+The rest of the subquestions were solved using the same code as below.
+
+## Library imports
+
+```{r echo = TRUE, results='hide'}
+library(readr)
+
+library(stringr)
+```
+
+## Functions
+
+### Defining function to get neighbours according to 4-connectivity
+
+This function takes as input a matrix `x` and the co-ordinates of a point $(i, j)$ as `i` and `j` respectively. It then endeavours to find its four neighbours according to the four-neighbour connectivity criteria. It returns a character vector `n_collection` containing the point's neighbours' co-ordinates as a single string in a comma-separated form "i,j".
+
+```{r }
+
+find_4_n <- function(x, i, j){
+
+  n_collection <- vector(mode = "character")
+  n1_i <- i + 1
+  n1_j <- j
+
+  if(n1_i <= nrow(x)){
+    
+    if(x[n1_i, n1_j] == 1){
+      n1_string <- paste(n1_i, n1_j, sep = ",")
+      n_collection <- c(n_collection, n1_string)
+    }
+  }
+    
+    n2_i <- i -1
+    n2_j <- j 
+    
+    if(n2_i  >= 1){
+      
+      if(x[n2_i, n2_j] == 1){
+        n2_string <- paste(n2_i, n2_j, sep = ",")
+        n_collection <- c(n_collection, n2_string)
+      }
+    }
+    
+    n3_i <- i
+    n3_j <- j + 1 
+    
+    if(n3_j  <= ncol(x)){
+      
+      if(x[n3_i, n3_j] == 1){
+        n3_string <- paste(n3_i, n3_j, sep = ",")
+        n_collection <- c(n_collection, n3_string)
+      }
+    }
+    
+    n4_i <- i
+    n4_j <- j - 1 
+    
+    if(n4_j  >= 1){
+      
+      if(x[n4_i, n4_j] == 1){
+        n4_string <- paste(n4_i, n4_j, sep = ",")
+        n_collection <- c(n_collection, n4_string)
+      }
+    }
+    return(n_collection)
+}
+
+```
+
+### Defining function to get 4-neighbour collections
+
+This function iterates through all the points in the matrix, and for each point gets its four-neighbour collection (or set) using `find_4_n` as a sub-routine, and accumulates the neighbour sets of each point in a list called `n_list`. 
+
+It then looks across all the accumulated four-neighbour sets for common points within the sets, and if there are any common points it attempts to collapse these sets into a single set. The objective is to create a non-redundant collection of sets with no points in common between them, where each point is associated with only those points who are all linked with it, and they in turn are linked with others using the four-neighbour criteria. These are the four-neighbour clusters.
+
+This function takes as an input a matrix `x` and returns the list `n_list`, where each list element is a character vector corresponding to a cluster.
+
+The **name** of each list element is a comma-separated string of the co-ordinates of a particular point, "i,j", and the **element itself** is a character vector of points (also specified by comma-separated strings) which are linked to the point specified by the element name. All of these points correspond to a cluster.
+
+
+```{r }
+
+get_4_n_collections <- function(x){
+  
+  n_list <- list("blank" = NULL)
+  
+  for(i in 1:nrow(x)){
+    for(j in 1:ncol(x)){
+      
+      if(x[i, j] > 0){
+        n_string <- paste(i, j, sep = ",")
+        n_collection <- find_4_n(x, i, j)    # find 4 neighbour groups
+        integration_status <- 0
+        
+        for(name in names(n_list)){
+          if(n_string %in%  n_list[[name]]){
+            n_list[[name]] <- union(n_list[[name]], n_collection)
+            integration_status <- 1
+          } else if(length(intersect(n_collection, n_list[[name]])) > 0){
+            n_list[[name]] <- union(n_list[[name]], n_collection)
+            integration_status <- 1
+          }
+        }
+        
+        if(integration_status == 0){
+          n_list[[n_string]] <- c(n_collection, n_string)
+        }
+      }
+    }
+  }
+  
+  ## cleanup
+  
+  n_list <- n_list[!names(n_list) == "blank"]   # removing placeholder
+  
+  n_list <- n_list[sapply(n_list, length) != 0] # removing list elements of length 0 (if any)
+  
+  to_remove <- vector(mode = "character")       # container for storing redundant elements
+  
+  for(name1 in names(n_list)){
+    for(name2 in names(n_list)){
+      if(name2 != name1 & name2 %in% n_list[[name1]] & !name1 %in% to_remove){
+        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])
+        to_remove <- c(to_remove, name2)
+      }else if(name2 != name1 & length(intersect(n_list[[name1]], n_list[[name2]])) > 0 & !name1 %in% to_remove){
+        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])
+        to_remove <- c(to_remove, name2)
+      }
+    } 
+  }
+  
+  n_list <- n_list[!names(n_list) %in% to_remove]
+  
+  return(n_list)
+}
+
+```
+
+### Defining function to get neighbours according to 8-connectivity
+
+This function works in the same way as `find_4_n`, except that it attempts to find neighbours according to the eight-neighbour connectivity criteria instead of the four-neighbour connectivity criteria.
+
+This function takes as input a matrix `x` and the co-ordinates of a point $(i, j)$ as `i` and `j` respectively. It returns a character vector containing its neighbours' co-ordinates as a single string in a comma-separated form "i,j".
+
+```{r }
+
+find_8_n <- function(x, i, j){
+  
+  n_collection <- vector(mode = "character")
+  
+  n1_i <- i + 1
+  n1_j <- j
+  
+  if(n1_i <= nrow(x)){
+    
+    if(x[n1_i, n1_j] == 1){
+      n1_string <- paste(n1_i, n1_j, sep = ",")
+      n_collection <- c(n_collection, n1_string)
+    }
+  }
+  
+  n2_i <- i -1
+  n2_j <- j 
+  
+  if(n2_i  >= 1){
+    
+    if(x[n2_i, n2_j] == 1){
+      n2_string <- paste(n2_i, n2_j, sep = ",")
+      n_collection <- c(n_collection, n2_string)
+    }
+  }
+  
+  n3_i <- i
+  n3_j <- j + 1 
+  
+  if(n3_j  <= ncol(x)){
+    
+    if(x[n3_i, n3_j] == 1){
+      n3_string <- paste(n3_i, n3_j, sep = ",")
+      n_collection <- c(n_collection, n3_string)
+    }
+  }
+  
+  n4_i <- i
+  n4_j <- j - 1 
+  
+  if(n4_j  >= 1){
+    
+    if(x[n4_i, n4_j] == 1){
+      n4_string <- paste(n4_i, n4_j, sep = ",")
+      n_collection <- c(n_collection, n4_string)
+    }
+  }
+  
+  n5_i <- i + 1
+  n5_j <- j + 1 
+  
+  if(n5_i <= nrow(x) & n5_j <= ncol(x)){
+    
+    if(x[n5_i, n5_j] == 1){
+      n5_string <- paste(n5_i, n5_j, sep = ",")
+      n_collection <- c(n_collection, n5_string)
+    }
+  }
+  
+  n6_i <- i - 1
+  n6_j <- j + 1 
+  
+  if(n6_i >= 1 & n6_j <= ncol(x)){
+    
+    if(x[n6_i, n6_j] == 1){
+      n6_string <- paste(n6_i, n6_j, sep = ",")
+      n_collection <- c(n_collection, n6_string)
+    }
+  }
+  
+  n7_i <- i + 1
+  n7_j <- j - 1 
+  
+  if(n7_i <= nrow(x) & n7_j >= 1){
+    
+    if(x[n7_i, n7_j] == 1){
+      n7_string <- paste(n7_i, n7_j, sep = ",")
+      n_collection <- c(n_collection, n7_string)
+    }
+  }
+  
+  n8_i <- i - 1
+  n8_j <- j - 1 
+  
+  if(n8_i >= 1 & n8_j >= 1){
+    
+    if(x[n8_i, n8_j] == 1){
+      n8_string <- paste(n8_i, n8_j, sep = ",")
+      n_collection <- c(n_collection, n8_string)
+    }
+  }
+  
+  return(n_collection)
+}
+
+```
+
+
+### Defining function to get 8-neighbour collections
+
+This function works in the same way as `get_4_n_collections`; however, it uses `find_8_n` as a subroutine instead of `find_4_n`. It takes as an input a matrix `x` and outputs a list `n_list`. 
+
+
+```{r }
+get_8_n_collections <- function(x){
+  n_list <- list("blank" = NULL)
+  
+  for(i in 1:nrow(x)){
+    for(j in 1:ncol(x)){
+      if(x[i, j] > 0){
+        
+        n_string <- paste(i, j, sep = ",")
+        n_collection <- find_8_n(x, i, j)
+        integration_status <- 0
+        
+        for(name in names(n_list)){
+          if(n_string %in%  n_list[[name]]){
+            integration_status <- 1
+            n_list[[name]] <- union(n_list[[name]], n_collection)
+          } else if(length(intersect(n_collection, n_list[[name]])) > 0){
+            integration_status <- 1
+            n_list[[name]] <- union(n_list[[name]], n_collection)
+          }
+        }
+        
+        if(integration_status == 0){
+          n_list[[n_string]] <- c(n_collection, n_string)
+        }
+      }
+    }
+  }
+  
+  n_list <- n_list[!names(n_list) == "blank"]
+  
+  n_list <- n_list[sapply(n_list, length) != 0]
+  
+  to_remove <- vector(mode = "character")
+
+  for(name1 in names(n_list)){
+    for(name2 in names(n_list)){
+      if(name2 != name1 & name2 %in% n_list[[name1]] & !name1 %in% to_remove){
+        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])
+        to_remove <- c(to_remove, name2)
+      }else if(name2 != name1 & length(intersect(n_list[[name1]], n_list[[name2]])) > 0 & !name1 %in% to_remove){
+        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])
+        to_remove <- c(to_remove, name2)
+      }
+    } 
+  }
+  
+  n_list <- n_list[!names(n_list) %in% to_remove]
+  
+  return(n_list)
+}
+```
+
+
+### Defining function to label the clusters
+
+Once a non-redundant collection of interlinked neighbours (i.e., a clusters) has been generated, this function labels the points in each cluster with a unique integer label. It takes as an input the matrix to be labelled, `x`, and the a list `n_list`, each element of which contains the points corresponding to the a cluster in the matrix according to either the 4-connectivity or 8-connectivity criteria. It returns the labelled matrix `lab_mat`, with the clusters labelled by unique integer labels.
+
+Note that this function uses within itself the function `str_split` from the `stringr` package, to split the comma-separated co-ordinates of the cluster points along the comma. [Link to the function documentation.](https://stringr.tidyverse.org/reference/str_split.html)
+
+```{r }
+
+label_clusters <- function(x, n_list){
+  
+  lab_mat <- x
+  
+  for(i in seq_along(n_list)){
+    cluster_label <- i
+    n_collection <- n_list[[i]]   
+    n_collection_coord <- str_split(n_collection, pattern = ",")
+    
+    for(i in seq_along(n_collection_coord)){
+      current_coords <- as.integer(n_collection_coord[[i]])
+      lab_mat[current_coords[1], current_coords[2]] <- cluster_label
+    }
+  }
+  return(lab_mat)
+}
+
+```
+
+
+
+## Example walk-through
+
+Consider the following matrix y, which was given in the statement of the original problem. 
+
+```{r }
+
+y <- rbind(c(0, 0, 1, 1),
+           c(1, 1, 0, 0),
+           c(0, 0, 0, 0),
+           c(0, 1, 1, 0),
+           c(0, 1, 1, 1)
+           )
+print(y)
+```
+
+Getting the four neighbours of a particular point in `y`. Let us pick point (4, 3) and look at its four neighbours.
+
+```{r }
+find_4_n(x = y, i = 4, j = 3)
+```
+
+Getting the eight neighbours of a particular point in `y`. Let us pick point (4, 3) and look at its eight neighbours.
+
+```{r }
+find_8_n(x = y, i = 4, j = 3)
+```
+
+Getting four-neighbour collections.
+
+```{r }
+n4_list <- get_4_n_collections(y)
+print(n4_list)
+```
+
+Getting eight-neighbour collections.
+
+```{r }
+n8_list <- get_8_n_collections(y)
+print(n8_list)
+```
+
+Four-neighbour labelling.
+
+```{r }
+lab4_mat <- label_clusters(y, n4_list)
+
+lab4_mat
+```
+
+Eight-neighbour labelling.
+
+```{r }
+lab8_mat <- label_clusters(y, n8_list)
+
+lab8_mat
+```
+
+
+
+# Actual solution to Question 4
+
+## Read input file
+
+```{r echo = FALSE, results = "hide"}
+curDir <- getwd()
+list.files(curDir, include.dirs = FALSE)
+```
+
+```{r}
+curDir <- getwd()
+list.dirs(curDir, recursive = FALSE, full.names = FALSE)
+```
+
+
+```{r}
+list.files(path = file.path(curDir, "Question 4")) 
+```
+
+```{r}
+mat <- read_tsv(file.path(curDir, "./Question\ 4/input_question_4"), col_names = F)
+
+mat <- as.matrix(mat)
+
+mat
+```
+
+### Four neighbour labelling
+
+
+```{r }
+n4_list <- get_4_n_collections(mat)
+
+lab4_mat <- label_clusters(mat, n4_list)
+
+lab4_mat
+
+```
+
+
+### Eight-neighbour labelling
+
+```{r }
+n8_list <- get_8_n_collections(mat)
+
+lab8_mat <- label_clusters(mat, n8_list)
+
+lab8_mat
+```
+
+### Writing outputs to files
+
+Writing four-connectivity output.
+
+```{r }
+write_delim(x = as.data.frame(lab4_mat), path = file.path(curDir, "Question 4", "output_question_4_four_connectivity.txt"),  delim = " ", col_names = FALSE)
+```
+
+Writing eight-connectivity output.
+
+```{r }
+write_delim(x = as.data.frame(lab8_mat), path = file.path(curDir, "Question 4", "output_question_4_eight_connectivity.txt"),  delim = " ", col_names = FALSE)
+```
+

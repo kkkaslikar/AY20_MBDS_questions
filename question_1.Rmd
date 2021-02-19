@@ -8,16 +8,16 @@ output:
 ---
 
 
-```{r echo = FALSE}
+```{r echo = FALSE, results='hide'}
 knitr::opts_chunk$set(tidy = TRUE)
 getwd()
 ```
 
-# Code
+# Code walk-through
 
 This section works through the code for one example (Question 1a, the first number `65`).
 
-The rest of the subquestions were solved using the same code as below.
+The rest of the subquestions were solved using the same code as the one shown below.
 
 ## Library imports
 
@@ -30,7 +30,6 @@ library(readr)
 ```
 
 ## Getting inputs
-
 
 ```{r}
 r <- 9  # number of rows
@@ -155,9 +154,10 @@ sum(idx) == (c-1)
 Since we have broken down our total distance covered into the distance covered by downward steps and the distance covered by rightward steps,
 
 $$
-total\_distance = rightward\_distance + downward\_distance \\
-
-\therefore downward\_distance = total\_distance - rightward\_distance
+totalDistance = rightwardDistance + downwardDistance
+$$
+$$
+\therefore downwardDistance = totalDistance - rightwardDistance
 $$
 
 The next piece of code subtracts the distance that we traversed using only the rightward steps from the original distance that we had to travel (i.e., the sum we had to reach); the value of this should be equal the distance covered by downward steps.
@@ -197,6 +197,8 @@ str_length(final_string)
 ```
 
 # Question 1
+
+This is the actual solution for question 1.
 
 ## Question 1a
 
@@ -306,15 +308,18 @@ return(final_string)
 
 ```
 
+Looking at the output strings for each of the summed numbers to reach.
+
 ```{r}
+names(solution.strings) <- as.character(all.distances)
 solution.strings
 ```
 
 
 ```{r}
-for(i in seq_along(all.distances)){
-  line <- paste(all.distances[i], solution.strings[i], sep = " ")
-  write_lines(x = line, path = "./Question 1/output_question_1.txt", sep = "\n", append = TRUE)
+for(i in names(solution.strings)){
+  line <- paste(i, solution.strings[i], sep = " ")
+  write_lines(x = line, path = "./Question 1/output_question_1", sep = "\n", append = TRUE)
 }
 ```
 
@@ -323,9 +328,9 @@ for(i in seq_along(all.distances)){
 
 Solving question 1b and writing the output to a file.
 
-This question has been solved a little differently, owing to the fact that using the current code, the first of the summed numbers `87,127,231,192`, cannot be reached within the required of operations.
+This question has been solved a little differently, owing to the fact that using the current code, the first of the summed numbers `87,127,231,192`, cannot be reached within the required of operations using the method employed in this answer. Hence, the solution has only been provided for the second summed number, `5,994,891,682`.`
 
-The first number
+Looking at the first number.
 
 ```{r}
 r <- 90000  # number of rows
@@ -356,7 +361,7 @@ if((distance.togo %/% r) > n.r.step){
 }
 ```
 
-Getting the string for the second number
+Getting the string for the second number.
 
 ```{r}
 
@@ -449,12 +454,13 @@ final_string <- do.call(what = str_c, args = all.segments) # concatentate all th
 
 ```
 
-`str_length` gets the length of a string.
+Looking at the length of the output string.
 
 ```{r}
 str_length(final_string)
 ```
 
+Writing the output string to the file.
 
 ```{r echo = TRUE}
 
@@ -462,9 +468,11 @@ line <- paste(orig.distance, final_string, sep = " ")
 
 ## writing the blank line between the answers to Q1a and Q1b
 
-write_lines(x = "", path = "./Question 1/output_question_1.txt", sep = "\n", append = TRUE)
+write_lines(x = "", path = "./Question 1/output_question_1", sep = "\n", append = TRUE)
 
-write_lines(x = line, path = "./Question 1/output_question_1.txt", sep = "\n", append = TRUE)
+## writing the actual answer to Q1b
+
+write_lines(x = line, path = "./Question 1/output_question_1", sep = "\n", append = TRUE)
 
 ```
 
