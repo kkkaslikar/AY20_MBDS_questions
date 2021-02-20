@@ -658,6 +658,6 @@ status
 ## Writing output to file
 
 ```{r}
-write_delim(x = status, path = file.path(curDir, "Question 6", "input_question_6_polygon"), delim = " ", col_names = F)
+write_delim(x = status, path = file.path(curDir, "Question 6", "output question 6"), delim = " ", col_names = F)
 ```
 
