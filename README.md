@@ -4,4 +4,4 @@ This repository contains the solution files, as well as the relevant code and ex
 
 The solution files for the individual questions are present in their respective folders.
 
-The rendered Jupyter and R notebooks can be viewed at: 
+The rendered Jupyter and R notebooks can be viewed at: [https://kkkaslikar.github.io/AY20_MBDS_questions/](https://kkkaslikar.github.io/AY20_MBDS_questions/)
