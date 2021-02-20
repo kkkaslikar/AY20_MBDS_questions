@@ -1,0 +1,570 @@
+---
+title: "Code for Question 6"
+output: 
+  html_notebook:
+    number_sections: true
+    toc: 2
+    toc_float: true
+---
+
+
+```{r echo = FALSE, results='hide'}
+knitr::opts_chunk$set(tidy = TRUE)
+getwd()
+```
+
+
+
+# Overall approach
+
+The general approach taken for determining whether a point lies within a polygon or not involves the following steps:
+
+1. Draw two lines emanating from the point of interest, one horizontal (parallel to the X-axis) and one vertical (parallel to the Y-axis).
+2. Find the points of intersection of these emanated lines with the line segments of the polygon.
+3. Check for the following two conditions:
+   1. At least one intersection point lies above the point of interest AND at least one lies  below.
+   2. At least one intersection point lies to the left of the point of interest AND at least one lies to the right.
+4. If **both** the conditions are true, then the point is deemed to be within the polygon, if not, the point is deemed to be outside the polygon.
+
+For example, consider the following plot of a point that lies within the polygon. The polygon given in the question has been plotted in green. A point of interest has been plotted as a blue square. The emanating horizontal and vertical lines have been plotted in blue. The points of intersection of the horizontal line have been plotted in purple, while those of the vertical line have been plotted in orange.
+
+The plot visually confirms that the point is indeed within the polygon. It can also be seen that the point of interest fulfills both the conditions in point 3 above; hence, these conditions can be used to verify whether a point lies within the polygon in the absence of visualisation.
+
+```{r, fig.height=5, fig.width=5, echo=FALSE}
+plot(5, 5, col = "white", xlab = "X", ylab = "Y", xlim = c(0, 25), ylim = c(0, 25))   
+
+# Draw a polygon 
+polygon(x = poly.points$x,  # X-Coordinates of polygon  
+        y = poly.points$y,    # Y-Coordinates of polygon 
+        col = "darkgreen")
+
+# abline(v = x.bounds.min)
+# abline(v = x.bounds.max)
+# abline(h = y.bounds.min)
+# abline(h = y.bounds.max)
+
+# for(i in seq_along(all.lines)){
+#   if(all.lines[[i]]["ltype"] == "normal"){
+#     abline(a = all.lines[[i]][["icp"]], b = all.lines[[i]][["sl"]], col = "red")
+#   }
+# }
+
+# abline(all.lines[[1]][["icp"]], all.lines[[1]][["sl"]], col = "red")
+# walk(.x = all.lines, .f = ~{
+#   if(.x["ltype"] == "normal"){
+#     abline(a = .x[["icp"]], b = .x[["sl"]], col = "red")
+#   }
+# })
+
+walk(.x = seq_along(h.int.point.df), .f= ~{
+  h.int.point <- c("x"= h.int.point.df$x[.x], "y" = h.int.point.df$y[.x])
+  points(h.int.point["x"], h.int.point["y"], pch = 22, bg = "purple", cex = 2)
+})
+
+walk(.x = seq_along(v.int.point.df), .f= ~{
+  v.int.point <- c("x"= v.int.point.df$x[.x], "y" = v.int.point.df$y[.x])
+  points(v.int.point["x"], v.int.point["y"], pch = 23, bg = "orange", cex = 2)
+})
+
+# ex.point <- c("x" = 11, "y" = 6)
+# ex.line <- all.lines[[9]]
+
+# abline(a = ex.line[["icp"]], b = ex.line[["sl"]], col = "red")
+
+points(ex.point["x"], ex.point["y"], pch = 22, bg = "blue", cex = 2)
+
+abline(v = ex.point["x"], col = "blue")
+abline(h = ex.point["y"], col = "blue")
+
+# points(get.intersect.h(ex.point, ex.line)["x"], get.intersect.h(ex.point, ex.line)["y"], pch = 23, bg = "orange")
+# 
+# points(get.intersect.v(ex.point, ex.line)["x"], get.intersect.v(ex.point, ex.line)["y"], pch = 23, bg = "purple")
+
+# segments(x0 = poly.points$x[1], y0 = poly.points$y[1], x1 = poly.points$x[2], y1 = poly.points$y[2], col = "orange", lwd = 4)
+```
+
+
+On the other hand, consider the plot below. The point of interest does not lie within the polygon.
+
+It can be seen that the point of interest fails condition 1 in point 3.
+
+```{r, fig.height=5, fig.width=5, echo=FALSE}
+plot(5, 5, col = "white", xlab = "X", ylab = "Y", xlim = c(0, 25), ylim = c(0, 25))   
+
+# Draw a polygon 
+polygon(x = poly.points$x,  # X-Coordinates of polygon  
+        y = poly.points$y,    # Y-Coordinates of polygon 
+        col = "darkgreen")
+
+# abline(v = x.bounds.min)
+# abline(v = x.bounds.max)
+# abline(h = y.bounds.min)
+# abline(h = y.bounds.max)
+
+# for(i in seq_along(all.lines)){
+#   if(all.lines[[i]]["ltype"] == "normal"){
+#     abline(a = all.lines[[i]][["icp"]], b = all.lines[[i]][["sl"]], col = "red")
+#   }
+# }
+
+# abline(all.lines[[1]][["icp"]], all.lines[[1]][["sl"]], col = "red")
+# walk(.x = all.lines, .f = ~{
+#   if(.x["ltype"] == "normal"){
+#     abline(a = .x[["icp"]], b = .x[["sl"]], col = "red")
+#   }
+# })
+
+walk(.x = seq_along(h.int.point.df), .f= ~{
+  h.int.point <- c("x"= h.int.point.df$x[.x], "y" = h.int.point.df$y[.x])
+  points(h.int.point["x"], h.int.point["y"], pch = 22, bg = "purple", cex = 2)
+})
+
+walk(.x = seq_along(v.int.point.df), .f= ~{
+  v.int.point <- c("x"= v.int.point.df$x[.x], "y" = v.int.point.df$y[.x])
+  points(v.int.point["x"], v.int.point["y"], pch = 23, bg = "orange", cex = 2)
+})
+
+# ex.point <- c("x" = 11, "y" = 6)
+# ex.line <- all.lines[[9]]
+
+# abline(a = ex.line[["icp"]], b = ex.line[["sl"]], col = "red")
+
+points(ex.point["x"], ex.point["y"], pch = 22, bg = "blue", cex = 2)
+
+abline(v = ex.point["x"], col = "blue")
+abline(h = ex.point["y"], col = "blue")
+
+# points(get.intersect.h(ex.point, ex.line)["x"], get.intersect.h(ex.point, ex.line)["y"], pch = 23, bg = "orange")
+# 
+# points(get.intersect.v(ex.point, ex.line)["x"], get.intersect.v(ex.point, ex.line)["y"], pch = 23, bg = "purple")
+
+# segments(x0 = poly.points$x[1], y0 = poly.points$y[1], x1 = poly.points$x[2], y1 = poly.points$y[2], col = "orange", lwd = 4)
+```
+
+Consider another plot below. The point of interest does not lie within the polygon. It can be seen that the point of interest fails condition 2 in point 3.
+
+```{r, fig.height=5, fig.width=5, echo=FALSE}
+plot(5, 5, col = "white", xlab = "X", ylab = "Y", xlim = c(0, 25), ylim = c(0, 25))   
+
+# Draw a polygon 
+polygon(x = poly.points$x,  # X-Coordinates of polygon  
+        y = poly.points$y,    # Y-Coordinates of polygon 
+        col = "darkgreen")
+
+# abline(v = x.bounds.min)
+# abline(v = x.bounds.max)
+# abline(h = y.bounds.min)
+# abline(h = y.bounds.max)
+
+# for(i in seq_along(all.lines)){
+#   if(all.lines[[i]]["ltype"] == "normal"){
+#     abline(a = all.lines[[i]][["icp"]], b = all.lines[[i]][["sl"]], col = "red")
+#   }
+# }
+
+# abline(all.lines[[1]][["icp"]], all.lines[[1]][["sl"]], col = "red")
+# walk(.x = all.lines, .f = ~{
+#   if(.x["ltype"] == "normal"){
+#     abline(a = .x[["icp"]], b = .x[["sl"]], col = "red")
+#   }
+# })
+
+walk(.x = seq_along(h.int.point.df), .f= ~{
+  h.int.point <- c("x"= h.int.point.df$x[.x], "y" = h.int.point.df$y[.x])
+  points(h.int.point["x"], h.int.point["y"], pch = 22, bg = "purple", cex = 2)
+})
+
+walk(.x = seq_along(v.int.point.df), .f= ~{
+  v.int.point <- c("x"= v.int.point.df$x[.x], "y" = v.int.point.df$y[.x])
+  points(v.int.point["x"], v.int.point["y"], pch = 23, bg = "orange", cex = 2)
+})
+
+# ex.point <- c("x" = 11, "y" = 6)
+# ex.line <- all.lines[[9]]
+
+# abline(a = ex.line[["icp"]], b = ex.line[["sl"]], col = "red")
+
+points(ex.point["x"], ex.point["y"], pch = 22, bg = "blue", cex = 2)
+
+abline(v = ex.point["x"], col = "blue")
+abline(h = ex.point["y"], col = "blue")
+
+# points(get.intersect.h(ex.point, ex.line)["x"], get.intersect.h(ex.point, ex.line)["y"], pch = 23, bg = "orange")
+# 
+# points(get.intersect.v(ex.point, ex.line)["x"], get.intersect.v(ex.point, ex.line)["y"], pch = 23, bg = "purple")
+
+# segments(x0 = poly.points$x[1], y0 = poly.points$y[1], x1 = poly.points$x[2], y1 = poly.points$y[2], col = "orange", lwd = 4)
+```
+
+Hence, these conditions can filter out any point lies outside the polygon in the absence of visualisation.
+
+# Code walk-through
+
+## Library imports
+
+```{r echo = TRUE, results='hide'}
+library(tidyverse)
+```
+
+## Reading in the files
+
+
+```{r}
+curDir <- getwd()
+```
+
+
+```{r}
+list.files(curDir)
+```
+
+```{r}
+list.files("./Question 6/")
+```
+
+The points of the polygon are stored in the data frame `poly.points`.
+
+```{r}
+poly.points <- read_delim(file = file.path(curDir, "Question 6", "input_question_6_polygon"), delim = " ", col_names = F, col_types = "ii")
+
+poly.points
+```
+
+```{r}
+colnames(poly.points) <- c("x", "y")
+poly.points
+```
+
+
+```{r}
+x.bounds.min <- min(poly.points$x)
+x.bounds.max <- max(poly.points$x)
+
+y.bounds.min <- min(poly.points$y)
+y.bounds.max <- max(poly.points$y)
+```
+
+
+
+```{r}
+print(x.bounds.min)
+print(x.bounds.max)
+print(y.bounds.min)
+print(y.bounds.max)
+```
+
+
+
+
+```{r}
+a <- poly.points[1, ] %>% unlist(use.names = TRUE)
+a
+b <- poly.points[2, ] %>% unlist(use.names = TRUE)
+b
+```
+
+
+
+```{r}
+
+get.line <- function(a, b){
+  if(a[1] - b[1] == 0){
+    slope <- Inf
+    ltype <- "vertical"
+    x.intercept <- a[1]
+    l.list <- list("sl" = slope, "x.icp" = x.intercept, "pt1" = a, "pt2" = b, "x_coords" = c(a[1], b[1]), "y_coords" = c(a[2], b[2]), "ltype" = ltype)
+     return(l.list)
+  }else if(a[2] - b[2] == 0){
+    slope <- 0
+    ltype <- "horizontal"
+    y.intercept <- a[2]
+    l.list <- list("sl" = slope, "y.icp" = y.intercept, "pt1" = a, "pt2" = b, "x_coords" = c(a[1], b[1]), "y_coords" = c(a[2], b[2]), "ltype" = ltype)
+    return(l.list)
+  }else{
+    slope <- (a[2] - b[2])/(a[1] - b[1])
+    ltype <- "normal"
+    intercept <- a[2] - slope*a[1]
+    l.list <- list("sl" = slope, "icp" = intercept, "pt1" = a, "pt2" = b, "x_coords" = c(a[1], b[1]), "y_coords" = c(a[2], b[2]), ltype = ltype)
+    return(l.list) 
+  }
+}
+
+get.line(a, b)
+```
+
+
+```{r}
+all.lines <- map(.x = 1:nrow(poly.points), .f = ~{
+  if(.x < nrow(poly.points)){
+    a <- poly.points[.x, ] %>% unlist(use.names = TRUE)
+    b <- poly.points[.x + 1, ] %>% unlist(use.names = TRUE)
+    return(get.line(a, b))
+  }else if(.x == nrow(poly.points)){
+    a <- poly.points[.x, ] %>% unlist(use.names = TRUE)
+    b <- poly.points[1, ] %>% unlist(use.names = TRUE)
+    return(get.line(a, b))
+  }
+})
+```
+
+
+```{r}
+names(all.lines) <- paste("line", 1:nrow(poly.points), sep = "_")
+names(all.lines)
+```
+
+
+
+```{r}
+get.intersect.v <- function(pt, l){
+  if(l[["ltype"]] == "normal"){
+    int.point <- c("x" = NULL, "y" = NULL)
+    int.point["x"] <- pt["x"]
+    int.point["y"] <- l[["sl"]]*pt["x"] + l[["icp"]]
+    return(int.point)
+  }else if(l[["ltype"]] == "horizontal"){
+    int.point <- c("x" = NULL, "y" = NULL)
+    int.point["x"] <- pt["x"]
+    int.point["y"] <- l[["y.icp"]]
+    return(int.point)
+  }else{
+    return(NULL)
+  }
+}
+```
+
+
+```{r}
+get.intersect.h <- function(pt, l){
+  if(l[["ltype"]] == "normal"){
+    int.point <- c("x" = NULL, "y" = NULL)
+    int.point["x"] <- (pt["y"] - l[["icp"]])/l[["sl"]]
+    int.point["y"] <- pt["y"]
+    return(int.point)
+  }else if(l[["ltype"]] == "vertical"){
+    int.point <- c("x" = NULL, "y" = NULL)
+    int.point["x"] <- l[["x.icp"]]
+    int.point["y"] <- pt["y"]
+    return(int.point)
+  }else{
+    return(NULL)
+  }
+}
+```
+
+
+
+```{r}
+ex.point <- c("x" = 11, "y" = 6)
+ex.line <- all.lines[[8]]
+```
+
+```{r}
+ex.line
+```
+
+
+```{r}
+int.point.h <- get.intersect.h(ex.point, ex.line)
+int.point.h
+
+int.point.v <- get.intersect.v(ex.point, ex.line)
+int.point.v
+```
+
+
+```{r}
+any(int.point.h["x"] >= ex.line[["x_coords"]]) & any(int.point.h["x"] <= ex.line[["x_coords"]])
+
+any(int.point.h["y"] >= ex.line[["y_coords"]]) & any(int.point.h["y"] <= ex.line[["y_coords"]])
+
+any(int.point.v["x"] >= ex.line[["x_coords"]]) & any(int.point.v["x"] <= ex.line[["x_coords"]])
+
+any(int.point.v["y"] >= ex.line[["y_coords"]]) & any(int.point.v["y"] <= ex.line[["y_coords"]])
+```
+
+
+
+```{r}
+ex.point <- c("x" = 11, "y" = 5)
+
+v.int.point.list <- map(.x = all.lines, .f = function(ln){
+  
+  int.point <- get.intersect.v(ex.point, ln)
+  
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+  
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+h.int.point.list <- map(.x = all.lines, .f = function(ln){
+  int.point <- get.intersect.h(ex.point, ln)
+  
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  # return(int.point)
+  
+  if(x.status & y.status){
+    # return(int.point)
+    return(NULL)
+  }
+})
+```
+
+
+```{r}
+ex.point
+```
+
+
+```{r}
+v.int.point.list
+```
+
+
+
+```{r}
+h.int.point.list <- h.int.point.list[!map_lgl(h.int.point.list, is.null)]
+h.int.point.df <- map_dfr(h.int.point.list, .f = ~{return(.x)},.id = "line_number")
+h.int.point.df
+```
+
+
+```{r}
+v.int.point.list <- v.int.point.list[!map_lgl(v.int.point.list, is.null)]
+v.int.point.df <- map_dfr(v.int.point.list, .f = ~{return(.x)},.id = "line_number")
+v.int.point.df
+```
+
+
+```{r}
+if(nrow(v.int.point.df) == 0){
+  v.status <- FALSE
+}else{
+v.status <- any(ex.point["y"] <= v.int.point.df$y) & any(ex.point["y"] >= v.int.point.df$y)
+}
+
+print(paste("v status", v.status))
+
+if(nrow(h.int.point.df) == 0){
+  h.status <- FALSE
+}else{
+  h.status <- any(ex.point["x"] <= h.int.point.df$x) & any(ex.point["x"] >= h.int.point.df$x)
+}
+
+print(paste("h status", h.status))
+```
+
+## Collated code
+
+```{r}
+
+ex.point <- c("x" = 2, "y" = 12)
+
+v.int.point.list <- map(.x = all.lines, .f = function(ln){
+  int.point <- get.intersect.v(ex.point, ln)
+  
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+  
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+
+h.int.point.list <- map(.x = all.lines, .f = function(ln){
+  int.point <- get.intersect.h(ex.point, ln)
+
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+h.int.point.list <- h.int.point.list[!map_lgl(h.int.point.list, is.null)]
+
+h.int.point.df <- map_dfr(h.int.point.list, .f = ~{return(.x)},.id = "line_number")
+
+v.int.point.list <- v.int.point.list[!map_lgl(v.int.point.list, is.null)]
+
+v.int.point.df <- map_dfr(v.int.point.list, .f = ~{return(.x)},.id = "line_number")
+
+v.status <- any(ex.point["y"] <= v.int.point.df$y) & any(ex.point["y"] >= v.int.point.df$y)
+
+h.status <- any(ex.point["x"] <= h.int.point.df$x) & any(ex.point["x"] >= h.int.point.df$x)
+
+
+h.status
+v.status
+
+```
+
+
+## Collective function
+
+```{r}
+
+find.status <-function(poi, poly.lines){
+  v.int.point.list <- map(.x = poly.lines, .f = function(ln){
+  int.point <- get.intersect.v(poi, ln)
+  
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+  
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+
+h.int.point.list <- map(.x = poly.lines, .f = function(ln){
+  int.point <- get.intersect.h(poi, ln)
+
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+h.int.point.list <- h.int.point.list[!map_lgl(h.int.point.list, is.null)]
+
+h.int.point.df <- map_dfr(h.int.point.list, .f = ~{return(.x)},.id = "line_number")
+
+v.int.point.list <- v.int.point.list[!map_lgl(v.int.point.list, is.null)]
+
+v.int.point.df <- map_dfr(v.int.point.list, .f = ~{return(.x)},.id = "line_number")
+
+v.status <- any(poi["y"] <= v.int.point.df$y) & any(poi["y"] >= v.int.point.df$y)
+
+h.status <- any(poi["x"] <= h.int.point.df$x) & any(poi["x"] >= h.int.point.df$x)
+
+if(h.status & v.status){
+  return(c("x" = poi["x"], "y" = poi["y"], "status" = "inside"))
+  }else{
+  return(c("x" = poi["x"], "y" = poi["y"], "status" = "outside"))
+  }
+}
+
+```
+
+
+```{r}
+ex.point <- c("x" = 2, "y" = 12)
+
+find.status()
+```
+
