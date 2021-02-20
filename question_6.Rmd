@@ -31,8 +31,7 @@ For example, consider the following plot of a point that lies within the polygon
 The plot visually confirms that the point is indeed within the polygon. It can also be seen that the point of interest fulfills both the conditions in point 3 above; hence, these conditions can be used to verify whether a point lies within the polygon in the absence of visualisation.
 
 ```{r, fig.height=5, fig.width=5, echo=FALSE}
-plot(5, 5, col = "white", xlab = "X", ylab = "Y", xlim = c(0, 25), ylim = c(0, 25))   
-
+plot(5, 5, col = "white", xlab = "X", ylab = "Y", xlim = c(0, 25), ylim = c(0, 25)) 
 # Draw a polygon 
 polygon(x = poly.points$x,  # X-Coordinates of polygon  
         y = poly.points$y,    # Y-Coordinates of polygon 
@@ -236,6 +235,18 @@ poly.points
 ```
 
 
+
+```{r}
+points.of.interest <- read_delim(file = file.path(curDir, "Question 6", "input_question_6_points"), delim = " ", col_names = F, col_types = "ii")
+points.of.interest
+```
+
+```{r}
+colnames(points.of.interest) <- c("x", "y")
+points.of.interest
+```
+
+
 ```{r}
 x.bounds.min <- min(poly.points$x)
 x.bounds.max <- max(poly.points$x)
@@ -254,16 +265,7 @@ print(y.bounds.max)
 ```
 
 
-
-
-```{r}
-a <- poly.points[1, ] %>% unlist(use.names = TRUE)
-a
-b <- poly.points[2, ] %>% unlist(use.names = TRUE)
-b
-```
-
-
+## Defining the functions
 
 ```{r}
 
@@ -562,9 +564,100 @@ if(h.status & v.status){
 ```
 
 
-```{r}
-ex.point <- c("x" = 2, "y" = 12)
+```{r check-function}
+ex.point <- c("x" = 5, "y" = 21)
 
-find.status()
+find.status(poi = ex.point, poly.lines = all.lines)
+```
+
+
+```{r collated code}
+
+v.int.point.list <- map(.x = all.lines, .f = function(ln){
+  int.point <- get.intersect.v(ex.point, ln)
+  
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+  
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+
+h.int.point.list <- map(.x = all.lines, .f = function(ln){
+  int.point <- get.intersect.h(ex.point, ln)
+
+  x.status <- any(int.point["x"] >= ln[["x_coords"]]) & any(int.point["x"] <= ln[["x_coords"]])
+
+  y.status <- any(int.point["y"] >= ln[["y_coords"]]) & any(int.point["y"] <= ln[["y_coords"]])
+  
+  if(x.status & y.status){
+    return(int.point)
+  }
+})
+
+h.int.point.list <- h.int.point.list[!map_lgl(h.int.point.list, is.null)]
+
+h.int.point.df <- map_dfr(h.int.point.list, .f = ~{return(.x)},.id = "line_number")
+
+v.int.point.list <- v.int.point.list[!map_lgl(v.int.point.list, is.null)]
+
+v.int.point.df <- map_dfr(v.int.point.list, .f = ~{return(.x)},.id = "line_number")
+
+v.status <- any(ex.point["y"] <= v.int.point.df$y) & any(ex.point["y"] >= v.int.point.df$y)
+
+h.status <- any(ex.point["x"] <= h.int.point.df$x) & any(ex.point["x"] >= h.int.point.df$x)
+
+
+h.status
+v.status
+```
+
+
+```{r, fig.height=5, fig.width=5, echo=FALSE}
+plot(5, 5, col = "white", xlab = "X", ylab = "Y", xlim = c(0, 25), ylim = c(0, 25)) 
+# Draw a polygon 
+polygon(x = poly.points$x,  # X-Coordinates of polygon  
+        y = poly.points$y,    # Y-Coordinates of polygon 
+        col = "darkgreen")
+
+walk(.x = seq_along(h.int.point.df), .f= ~{
+  h.int.point <- c("x"= h.int.point.df$x[.x], "y" = h.int.point.df$y[.x])
+  points(h.int.point["x"], h.int.point["y"], pch = 22, bg = "purple", cex = 2)
+})
+
+walk(.x = seq_along(v.int.point.df), .f= ~{
+  v.int.point <- c("x"= v.int.point.df$x[.x], "y" = v.int.point.df$y[.x])
+  points(v.int.point["x"], v.int.point["y"], pch = 23, bg = "orange", cex = 2)
+})
+
+# ex.point <- c("x" = 11, "y" = 6)
+# ex.line <- all.lines[[9]]
+
+# abline(a = ex.line[["icp"]], b = ex.line[["sl"]], col = "red")
+
+points(ex.point["x"], ex.point["y"], pch = 22, bg = "blue", cex = 2)
+
+abline(v = ex.point["x"], col = "blue")
+abline(h = ex.point["y"], col = "blue")
+```
+
+
+
+```{r apply-function}
+status <- map_dfr(.x = 1:nrow(points.of.interest), .f = ~{
+  
+  poi <- c("x" = points.of.interest$x[.x], "y" = points.of.interest$y[.x])
+  return(find.status(poi = poi, poly.lines = all.lines))
+})
+status
+```
+
+## Writing output to file
+
+```{r}
+write_delim(x = status, path = file.path(curDir, "Question 6", "input_question_6_polygon"), delim = " ", col_names = F)
 ```
 
