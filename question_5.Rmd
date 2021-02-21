@@ -3,8 +3,7 @@ title: "Code for Question 5"
 output: 
   html_notebook:
     number_sections: true
-    toc: 2
-    toc_float: true
+    toc: true
 ---
 
 
