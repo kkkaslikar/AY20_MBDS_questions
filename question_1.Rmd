@@ -3,8 +3,8 @@ title: "Code for Question 1"
 output: 
   html_notebook:
     number_sections: true
-    toc: 2
-    toc_float: true
+    toc: true
+    toc_depth: 3
 ---
 
 
@@ -12,6 +12,72 @@ output:
 knitr::opts_chunk$set(tidy = TRUE)
 getwd()
 ```
+
+# Note about assumptions made
+
+The following assumption has been made about the value of the elements of the matrix : if $i$ is the row coordinate and $j$ is the column coordinate of any element of the matrix, the value of elements $a_{i,j} = i$. In other words, the matrix is of the following type:
+
+$$
+\begin{bmatrix}
+1 & 1 & 1 & 1\\
+2 & 2 & 2 & 2\\
+3 & 3 & 3 & 3\\
+4 & 4 & 4 & 4\\
+\end{bmatrix}
+$$
+
+However, the code is not meant to work if the value of the elements of the matrix do not follow the above pattern. For example, in the following case:
+
+$$
+\begin{bmatrix}
+1 & 2 & 3 & 5\\
+2 & 9 & 4 & 4\\
+3 & 4 & 1 & 7\\
+\end{bmatrix}
+$$
+
+# Approach
+
+The first conclusion that can be made from the nature of the problem is that the number of downward steps (operations) = the number of rows - 1, and the number of rightward steps (operations) = the number of columns - 1. Furthermore, the total number of operations = number of rows + number of columns - 2 
+
+Hence, for a matrix with m = 4 and n = 4, the number of downward operations = 3, number of rightward operations = 3, and the total number of operations = 6.
+
+Looking at the nature of the problem, another thing that becomes clear is that for a matrix of given dimension, the contribution of the downward steps to the sum is **the same** regardless of what number is to be summed to.
+
+For instance, consider the following matrix:
+
+$$
+\begin{bmatrix}
+1 & 1 & 1 & 1\\
+2 & 2 & 2 & 2\\
+3 & 3 & 3 & 3\\
+4 & 4 & 4 & 4\\
+\end{bmatrix}
+$$
+No matter whatever objective number is to be summed to, to reach the bottom right from the top left, the sum will always contain $1+2+3+4=10$. Since this quantity is invariable, it does not contribute to the differences in solutions for different objective numbers, and hence can be removed from the total number to be summed to. The only factor that differentiates the solutions is the contribution of the rightward steps to the sum, which has to be solved for.
+
+Consider the example given in the question sheet. Assuming that the matrix is as above, and the first number to be summed to is 19, then after removing the invariant portion of the sum (10), what remains is $16 - 10 = 9$. Hence, given this information, we have to determine how to reach the sum of 9 in number of rows -1 = 3 rightward operations. This problem can be rephrased as the following:
+
+Given a specific distance (9), you *have* to take to reach that distance within a specific number of steps (3). In addition, the distance that you can cover in each step (hereafter called step size) can only take very specific values (in this case, the values are [1, 2, 3, 4], which are the row indices of the matrix). Which step sizes will you select for each step?
+
+The problem can be visualised as below:
+
+![](./step_sizes.png)
+The logical thing to do would be to cover as much distance as possible in the first few steps by taking the maximum step size, but at the same time ensure that the remaining distance to cover can still be covered *exactly* within the remaining number of steps using the step sizes available to us. For instance, in this case, a distance of 9 can be reached by taking steps of size 4 within the first two steps ($2*4=8$), and cover the remaining 1 unit distance by taking the last step of size 1 unit.
+
+Consider another number to be summed to: 16. In this case, once again we subtract the invariant portion $16-10=6$.
+
+To cover a distance of 6 within 3 steps, we first take only one step with a distance of 4 (since taking one more step of size 4 would exceed the distance to be covered, and not even expend the total number of steps that have to be taken, i.e., 3). The size of the next step *has* to be 1, since the next smallest step size of 2 would cover the whole distance but would leave the one step remaining unused. The final step size is once again 1.
+
+A simple way to prevent covering too much distance by taking $n$ steps of size $k$ is to consider the following question:
+
+Is the distance remaining ($d_r$) after covering a distance of $n*k$ units = the number of steps remaining to be used? 
+
+This is because if the $d_r$ = the number of steps remaining, then $d_r$ can be covered by simply taking $d_r$ steps of size 1. If this is not true, then we can try taking $n-1$ steps of size $k$ and check for this condition again, and keep going in this manner until we find the right number of steps to take of size $k$. If this number of steps is 0, then we can consider a smaller step size $k-1$ and retry the process all over again, until the condition becomes true.
+
+Once we determine exactly how many steps of certain step sizes we should take we simply translate that to the rightward operations to perform. For instance, in the above case of reaching the number 19 (remaining distance of 9 after subtracting the contribution of the downward operations), the solution was to take two steps of size 4 and 1 step of size 1. This translates to two rightward operations in row 4 and one rightward operation in row 1, interspersed by downward operations.
+
+The following code takes this approach.
 
 # Code walk-through
 
@@ -69,7 +135,7 @@ print(idx)
 
 r.step.options <- 1:r # each element is a specific distance that can be traversed per rightward step; different combinations of these distances will be required to traverse the entirety of distance.togo
 
-r.step.options <- sort(r.step.options, decreasing = TRUE)
+r.step.options <- sort(r.step.options, decreasing = TRUE) # sorting the step sizes from largest to smallest
 
 print(r.step.options)
 ```
@@ -78,7 +144,7 @@ print(r.step.options)
 
 ## Loop for discovering number of rightward operations required
 
-This loop is the main workhorse of the code.
+This loop is the main workhorse of the code, and checks the conditions mentioned above.
 
 
 ```{r}

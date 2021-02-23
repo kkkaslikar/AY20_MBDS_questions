@@ -3,7 +3,7 @@ title: "Code for Question 4"
 output: 
   html_notebook:
     number_sections: true
-    toc: 2
+    toc_depth: 3
     toc_float: true
 ---
 
@@ -13,68 +13,71 @@ knitr::opts_chunk$set(tidy = TRUE)
 getwd()
 ```
 
-# Code
+# Code walkthrough
 
-This section works through the code for one example (Question 1a, the first number `65`).
-
-The rest of the subquestions were solved using the same code as below.
 
 ## Library imports
 
 ```{r echo = TRUE, results='hide'}
-library(readr)
+library(readr)  # file input-output functions
 
-library(stringr)
+library(stringr) # string processing functions
 ```
 
 ## Functions
 
 ### Defining function to get neighbours according to 4-connectivity
 
-This function takes as input a matrix `x` and the co-ordinates of a point $(i, j)$ as `i` and `j` respectively. It then endeavours to find its four neighbours according to the four-neighbour connectivity criteria. It returns a character vector `n_collection` containing the point's neighbours' co-ordinates as a single string in a comma-separated form "i,j".
+This function takes as input a matrix `x` and the co-ordinates of a point $(i, j)$ as `i` and `j` respectively. It then endeavours to find its four neighbours according to the four-neighbour connectivity criteria. It returns a character vector `n_collection` containing the point's neighbours' co-ordinates as comma-separated strings of form "i,j".
 
-```{r }
-
+```{r}
 find_4_n <- function(x, i, j){
 
-  n_collection <- vector(mode = "character")
+    n_collection <- vector(mode = "character") # initialising empty vector to hold neighbour coordinates
+
+
+  # next row same column
   n1_i <- i + 1
   n1_j <- j
 
-  if(n1_i <= nrow(x)){
+  if(n1_i <= nrow(x)){ # makes sure neighbour coordinate does not come before first column
     
     if(x[n1_i, n1_j] == 1){
-      n1_string <- paste(n1_i, n1_j, sep = ",")
-      n_collection <- c(n_collection, n1_string)
+      n1_string <- paste(n1_i, n1_j, sep = ",") # comma-separated string of neighbour's coordinates
+      n_collection <- c(n_collection, n1_string) # add the string to the neighbour collection
     }
   }
+
+    # previous row same column
     
     n2_i <- i -1
     n2_j <- j 
     
-    if(n2_i  >= 1){
+    if(n2_i  >= 1){ 
       
-      if(x[n2_i, n2_j] == 1){
+      if(x[n2_i, n2_j] == 1){ # makes sure neighbour coordinate does not come before first row
         n2_string <- paste(n2_i, n2_j, sep = ",")
         n_collection <- c(n_collection, n2_string)
       }
     }
-    
+
+    # same row next column
     n3_i <- i
     n3_j <- j + 1 
     
-    if(n3_j  <= ncol(x)){
+    if(n3_j  <= ncol(x)){ # makes sure neighbour coordinate does not come afte last column
       
       if(x[n3_i, n3_j] == 1){
         n3_string <- paste(n3_i, n3_j, sep = ",")
         n_collection <- c(n_collection, n3_string)
       }
     }
-    
+
+    # same row previous column
     n4_i <- i
     n4_j <- j - 1 
     
-    if(n4_j  >= 1){
+    if(n4_j  >= 1){ # makes sure neighbour coordinate does not come before first column
       
       if(x[n4_i, n4_j] == 1){
         n4_string <- paste(n4_i, n4_j, sep = ",")
@@ -92,63 +95,62 @@ This function iterates through all the points in the matrix, and for each point 
 
 It then looks across all the accumulated four-neighbour sets for common points within the sets, and if there are any common points it attempts to collapse these sets into a single set. The objective is to create a non-redundant collection of sets with no points in common between them, where each point is associated with only those points who are all linked with it, and they in turn are linked with others using the four-neighbour criteria. These are the four-neighbour clusters.
 
-This function takes as an input a matrix `x` and returns the list `n_list`, where each list element is a character vector corresponding to a cluster.
+This function takes as an input a matrix `x` and returns the list `n_list`, where each list element is a character vector corresponding to the co-ordinates of the cluster.
 
 The **name** of each list element is a comma-separated string of the co-ordinates of a particular point, "i,j", and the **element itself** is a character vector of points (also specified by comma-separated strings) which are linked to the point specified by the element name. All of these points correspond to a cluster.
 
 
 ```{r }
-
 get_4_n_collections <- function(x){
   
-  n_list <- list("blank" = NULL)
+  n_list <- list("blank" = NULL) # initialising list with empty element; list would hold the neighbour collections
   
-  for(i in 1:nrow(x)){
-    for(j in 1:ncol(x)){
+  for(i in 1:nrow(x)){  # iterating over rows
+    for(j in 1:ncol(x)){ # iterating over colunmns
       
-      if(x[i, j] > 0){
-        n_string <- paste(i, j, sep = ",")
-        n_collection <- find_4_n(x, i, j)    # find 4 neighbour groups
-        integration_status <- 0
+      if(x[i, j] > 0){ # if coordinate value is not 0
+        n_string <- paste(i, j, sep = ",")   # create comma-separated coordinate string for coordinate of point
+        n_collection <- find_4_n(x, i, j)    # neighbour collection = 4 neighbours' coordinates in the form of comma-separated strings
+        integration_status <- 0              # initialising default value as 0; if point present in n_list at any level, integration status should be 1; if point not present at any level, integration status should be 0
         
-        for(name in names(n_list)){
-          if(n_string %in%  n_list[[name]]){
-            n_list[[name]] <- union(n_list[[name]], n_collection)
-            integration_status <- 1
+        for(name in names(n_list)){          # iterating over all the element names of the list (element names are comma-separated coordinates)
+          if(n_string %in%  n_list[[name]]){ # if the the coordinate string is present as one of the element names
+            n_list[[name]] <- union(n_list[[name]], n_collection)  # merge the neighbour collections of the current coordinate string and the element name that matches it
+            integration_status <- 1                                # change integration status to 1
           } else if(length(intersect(n_collection, n_list[[name]])) > 0){
             n_list[[name]] <- union(n_list[[name]], n_collection)
-            integration_status <- 1
+            integration_status <- 1                                 # change integration status to 1
           }
         }
         
-        if(integration_status == 0){
-          n_list[[n_string]] <- c(n_collection, n_string)
+        if(integration_status == 0){                      # if integration status is still 0, 
+          n_list[[n_string]] <- c(n_collection, n_string) # include the point in n_list
         }
       }
     }
   }
   
-  ## cleanup
+  ## cleanup; to remove unnecessary or repeated points; repeated points can occur if coordinates of one or more points occur in multiple elements in n_list, in which case those elements should rightfully be unified into a single cluster
   
-  n_list <- n_list[!names(n_list) == "blank"]   # removing placeholder
+  n_list <- n_list[!names(n_list) == "blank"]   # removing placeholder element
   
   n_list <- n_list[sapply(n_list, length) != 0] # removing list elements of length 0 (if any)
   
   to_remove <- vector(mode = "character")       # container for storing redundant elements
   
-  for(name1 in names(n_list)){
-    for(name2 in names(n_list)){
-      if(name2 != name1 & name2 %in% n_list[[name1]] & !name1 %in% to_remove){
-        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])
-        to_remove <- c(to_remove, name2)
-      }else if(name2 != name1 & length(intersect(n_list[[name1]], n_list[[name2]])) > 0 & !name1 %in% to_remove){
-        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])
-        to_remove <- c(to_remove, name2)
+  for(name1 in names(n_list)){         # iterating over elements for the first time
+    for(name2 in names(n_list)){       # iterating over elements again
+      if(name2 != name1 & name2 %in% n_list[[name1]] & !name1 %in% to_remove){ # if name 2 occurs  components of name 1 and if it has not already been listed for removal  
+         n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]])  # unify components of name 2 and name 1
+        to_remove <- c(to_remove, name2)  # collect name 2 for removal
+      }else if(name2 != name1 & length(intersect(n_list[[name1]], n_list[[name2]])) > 0 & !name1 %in% to_remove){ # else if any of the components in name 2 occursin components of name 1 and if name 2 has not already been listed for removal 
+        n_list[[name1]] <- union(n_list[[name1]], n_list[[name2]]) # unify components of name 2 and name 1
+        to_remove <- c(to_remove, name2) # collect name 2 for removal
       }
     } 
   }
   
-  n_list <- n_list[!names(n_list) %in% to_remove]
+  n_list <- n_list[!names(n_list) %in% to_remove] # remove collected elements
   
   return(n_list)
 }
@@ -330,16 +332,16 @@ Note that this function uses within itself the function `str_split` from the `st
 
 label_clusters <- function(x, n_list){
   
-  lab_mat <- x
+  lab_mat <- x                  # create matrix to be labelled as a copy of the unlabelled matrix
   
-  for(i in seq_along(n_list)){
-    cluster_label <- i
-    n_collection <- n_list[[i]]   
-    n_collection_coord <- str_split(n_collection, pattern = ",")
+  for(i in seq_along(n_list)){  # iterate through n_list indices
+    cluster_label <- i          # use index as integer label for current cluster
+    n_collection <- n_list[[i]] # get indices of points in cluster as comma-separated strings from within n_list
+    n_collection_coord <- str_split(n_collection, pattern = ",") # split the string along the comma to get a list with each element being a character vector of two strings, the strings being the row and column indices of the points
     
-    for(i in seq_along(n_collection_coord)){
-      current_coords <- as.integer(n_collection_coord[[i]])
-      lab_mat[current_coords[1], current_coords[2]] <- cluster_label
+    for(i in seq_along(n_collection_coord)){  # iterate along the indices of the list
+      current_coords <- as.integer(n_collection_coord[[i]]) # covert the coordinate strings into integers
+      lab_mat[current_coords[1], current_coords[2]] <- cluster_label # label the matrix element using the coordinates with the previously-defined cluster label
     }
   }
   return(lab_mat)
@@ -440,11 +442,13 @@ mat
 
 ```{r }
 n4_list <- get_4_n_collections(mat)
+n4_list
+```
 
+```{r}
 lab4_mat <- label_clusters(mat, n4_list)
 
 lab4_mat
-
 ```
 
 
@@ -452,18 +456,23 @@ lab4_mat
 
 ```{r }
 n8_list <- get_8_n_collections(mat)
+n8_list
+```
 
+
+```{r }
 lab8_mat <- label_clusters(mat, n8_list)
-
 lab8_mat
 ```
 
 ### Writing outputs to files
 
+Since the question specifies that either of the four- or eight-connectivity labelled matrices is a valid answer, the four connectivity matrix will be written to the required output file. However, the eight connectivity matrix will be provided in a separate output file in case it needs to be checked.
+
 Writing four-connectivity output.
 
 ```{r }
-write_delim(x = as.data.frame(lab4_mat), path = file.path(curDir, "Question 4", "output_question_4_four_connectivity.txt"),  delim = " ", col_names = FALSE)
+write_delim(x = as.data.frame(lab4_mat), path = file.path(curDir, "Question 4", "output_question_4"),  delim = " ", col_names = FALSE)
 ```
 
 Writing eight-connectivity output.

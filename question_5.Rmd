@@ -22,15 +22,17 @@ The following flowchart shows the decision-making process employed while placing
 In short, the criteria for placing a bead in a cell, in decreasing order of priority are:
 
 1. The remaining count of the bead should be above 0. If not, consider another bead.
-2. The cell's four neighbours should not have the same bead colour as the bead under consideration. If the current bead is the only one that fulfills this criteria, place it.
+2. The cell's four neighbours should *not* have the same bead colour as the bead under consideration. If the current bead is the only one that fulfills this criteria, place it.
 3. If multiple beads exist that fulfill criteria 2, check if the remaining count of the current bead is equal to the maximum of the remaining count of all the beads. If so, place the bead. If not, consider another bead.
-4. If the current bead does not fulfill criteria 2, and there remains no other bead that fulfills criteria 2 (i.e., not having the same colour as those the cell's neighbours), check if the count of the bead under consideration is equal to the maximum of the remaining count of all the beads. If so, place the bead. If not, consider another bead.
+4. If the current bead does not fulfill criteria 2, and there remains no other bead that fulfills criteria 2 (i.e., *not* having the same colour as those of the cell's neighbours), check if the count of the bead under consideration is equal to the maximum of the remaining count of all the beads. If so, place the bead. If not, consider another bead.
+
+The reason for prioritising the placement of beads colours with the maximum count is that if these beads are not expended early on during the process, then once the other bead colours are completely expended there will be no choice but to place the beads with the maximum number side-by-side in the remaining cells, which will increase the penalty score.
 
 # Code walkthrough
 
 
 ```{r echo = TRUE, results='hide'}
-library(tidyverse)
+library(readr) # provides file input/output functions only
 ```
 
 
@@ -58,13 +60,13 @@ This function takes as input a matrix `x` and the co-ordinates of a point $(i, j
 ```{r }
 find.n.beads <- function(x, i, j){
 
-  n.collection <- vector(mode = "character")
+  n.collection <- vector(mode = "character") # empty variable to store neighbouring bead colours
   
   # same column next row
   n1_i <- i + 1
   n1_j <- j
 
-    if(n1_i <= nrow(x)){
+    if(n1_i <= nrow(x)){ # if n1_i does not exceed number of rows
       n.collection <- c(n.collection, "b" = x[n1_i, n1_j])
     }
     
@@ -72,7 +74,7 @@ find.n.beads <- function(x, i, j){
     n2_i <- i -1
     n2_j <- j 
     
-    if(n2_i  >= 1){
+    if(n2_i  >= 1){ # if n2_i does not go below number of rows
       n.collection <- c(n.collection, "t" = x[n2_i, n2_j])
     }
     
@@ -80,7 +82,7 @@ find.n.beads <- function(x, i, j){
     n3_i <- i
     n3_j <- j + 1
 
-    if(n3_j  <= ncol(x)){
+    if(n3_j  <= ncol(x)){ # if n3_j does not exceed number of columns
         n.collection <- c(n.collection, "r" = x[n3_i, n3_j])
     }
     
@@ -88,7 +90,7 @@ find.n.beads <- function(x, i, j){
     n4_i <- i
     n4_j <- j - 1 
     
-    if(n4_j  >= 1){
+    if(n4_j  >= 1){ # if n4_j does not go below number of columns
         n.collection <- c(n.collection, "l" = x[n4_i, n4_j])
     }
     return(n.collection)
@@ -109,44 +111,45 @@ find.n.beads(test.mat, 2, 3)
 The following function implements the previously-described recipe for bead placement. It takes as arguments a matrix `x` and a named vector of bead counts called `counts`. Its output is a matrix with the beads placed.
 
 ```{r}
+
 place.beads <- function(x, counts){
-  for(i in 1:nrow(x)){
-    for(j in 1:ncol(x)){
-      n.collection <- find.n.beads(x, i, j)
-      previous.bead <- ""     # initialising variable
-      for(bead in names(counts)){
+  for(i in 1:nrow(x)){                    # iterating over rows
+    for(j in 1:ncol(x)){                  # iterating over columns
+      n.collection <- find.n.beads(x, i, j) # find neighbours of current cell
+      previous.bead <- ""                 # initialising variable
+      for(bead in names(counts)){         # iterate over all the beads in the bead count vector     
         if(bead == previous.bead){ # if bead is the same as the previously-placed bead, skip
           break
         } else {
           if(counts[bead] > 0){ # if bead count > 0
           counts.subset1 <- counts[counts > 0]  # all beads with bead count > 0
-          if(!bead %in% n.collection){ # if bead is not in neighbours
-            counts.subset2 <- counts.subset1[!names(counts.subset1) %in% n.collection] # all beads which are not in neighbours
-            if(length(counts.subset2) == 1){ # if bead is the only remaining bead which has count different from neighbours
+          if(!bead %in% n.collection){ # if bead does NOT have same colour as neighbours
+            counts.subset2 <- counts.subset1[!names(counts.subset1) %in% n.collection] # all beads which have same colour as neighbours (including current one)
+            if(length(counts.subset2) == 1){ # If bead is the only remaining bead which has colour different from neighbours, i.e., no other bead has colour different from neighbours
               x[i, j] <- bead # place bead
               counts[bead] <- counts[bead] - 1 # decrease the count of the placed bead
               break
-            }else if(length(counts.subset2) > 1){  #at least one other bead has colour different from neighbours
-              if(counts.subset2[bead] == max(counts.subset2)){ # If count of bead == max count of remaining bead (even if there are multiple beads with max count, it is acceptable)
+            }else if(length(counts.subset2) > 1){  # If at least one other bead has colour different from neighbours
+              if(counts.subset2[bead] == max(counts.subset2)){ # If count of current bead == max count of remaining beads (even if there are other beads with max count, it is acceptable)
                 x[i, j] <- bead # place bead
                 counts[bead] <- counts[bead] - 1 # decrease the count of the placed bead
                 break
-              }else{ # If count of bead != max count of remaining beads, move on to the next bead
+              }else{ # If count of current bead != max count of remaining beads but there is another bead which has colour different from neighbours AND has max count, move on to the next bead
                 next
               }
             }
-          }else if(bead %in% n.collection){# bead IS in neighbours
-            counts.subset2 <- counts.subset1[!names(counts.subset1) %in% n.collection] # all beads which are not in neighbours
-            if(length(counts.subset2) == 0){ # If all beads including the current one, are same as neighbours; there is no other bead remaining which is different from neighbours 
-              if(counts.subset1[bead] == max(counts.subset1)){  # If count of bead = max count of bead (even if there are multiple beads with max count, it is acceptable)
+          }else if(bead %in% n.collection){# if bead HAS same colour as neighbours
+            counts.subset2 <- counts.subset1[!names(counts.subset1) %in% n.collection] # all beads which have colour different from neighbours (including current one)
+            if(length(counts.subset2) == 0){ # If all beads including the current one, have colour same as neighbours; i.e., there is no other bead remaining which is different from neighbours 
+              if(counts.subset1[bead] == max(counts.subset1)){  # If count of current bead = max count of remaining beads (even if there are other beads with max count, it is acceptable)
                 x[i, j] <- bead # place bead
                 counts[bead] <- counts[bead] - 1 # decrease the count of the placed bead
                 break
               }
             }
           }
-        }else{
-          next
+        }else{ # if bead count == 0
+          next # move on to the next bead
         }
         }
       }
@@ -161,14 +164,14 @@ place.beads <- function(x, counts){
 
 The following function is a more verbose version of `place.beads` contains various print statements which allow tracking of the process in real time. For demonstration purposes only.
 
-```{r}
 
+```{r}
 place.beads.verbose <- function(x, counts){
   print(counts)
-  for(i in 1:nrow(x)){
-    for(j in 1:ncol(x)){
+  for(i in 1:nrow(x)){ # iterating over rows
+    for(j in 1:ncol(x)){ # iterating over columns
       print(paste("i", i, "j", j))
-      print(paste("index", (ncol(x)*(i-1) + j)))
+      print(paste("cell no:", (ncol(x)*(i-1) + j)))
       n.collection <- find.n.beads(x, i, j)
       # print(n.collection)
       previous.bead <- ""
@@ -176,10 +179,10 @@ place.beads.verbose <- function(x, counts){
       for(bead in names(counts)){
         if(bead == previous.bead){ # if the bead is the same as the previously-placed bead, skip
           print(paste("previous.bead", previous.bead))
-          print(paste("bead", bead))
+          print(paste("current bead", bead))
           break
         } else {
-          print(paste("bead", bead))
+          print(paste(" current bead", bead))
           if(counts[bead] > 0){ # if bead count > 0
             counts.subset1 <- counts[counts > 0]  # all beads with bead count > 0
             # print("counts.subset1")
@@ -191,6 +194,7 @@ place.beads.verbose <- function(x, counts){
               if(length(counts.subset2) == 1){ # if bead is the only remaining bead which is not in neighbours
                 print("condition path 1 fulfilled; bead is uniquely not in neighbours")
                 x[i, j] <- bead # place bead
+                print(paste("placed bead", bead))
                 counts[bead] <- counts[bead] - 1
                 previous.bead = bead
                 break
@@ -198,6 +202,7 @@ place.beads.verbose <- function(x, counts){
                 if(counts.subset2[bead] == max(counts.subset2)){ # is count of bead = max count of bead (even if there are multiple beads with max count, it is acceptable)
                   print("condition path 2 fulfilled; bead is not in neighbours and max")
                   x[i, j] <- bead # place bead
+                  print(paste("placed bead", bead))
                   counts[bead] <- counts[bead] - 1
                   previous.bead = bead
                   break
@@ -211,6 +216,7 @@ place.beads.verbose <- function(x, counts){
                 if(counts.subset1[bead] == max(counts.subset1)){  # is count of bead = max count of bead (even if there are multiple beads with max count, it is acceptable)
                   print("condition path 3 fulfilled; bead is in neighbours and max")
                   x[i, j] <- bead # place bead
+                  print(paste("placed bead", bead))
                   counts[bead] <- counts[bead] - 1
                   previous.bead = bead
                   break
@@ -230,7 +236,6 @@ place.beads.verbose <- function(x, counts){
   return(list("x" = x, "counts" = counts))
 }
 
-
 ```
 
 
@@ -241,6 +246,8 @@ place.beads.verbose <- function(x, counts){
 place.beads(x = test.mat, counts = bead.counts)
 ```
 
+
+### Tracking the process of bead placement in real-time
 
 Looking at the verbose version.
 
@@ -289,7 +296,7 @@ Initialising matrix and bead counts.
 ```{r}
 L <- 64
 second.mat <- matrix(data = rep("X", times = L^2), nrow = L, ncol = L)
-head(second.mat)
+second.mat[1:20, 1:20]
 ```
 
 
@@ -301,12 +308,13 @@ sum(second.bead.counts)
 ```
 
 
-
 Placing the beads.
 
 ```{r}
 second.mat.placed <- place.beads(x = second.mat, counts = second.bead.counts)
 ```
+
+A sneak-peek at a subset of the second matrix with beads placed.
 
 ```{r}
 second.mat.placed[1:10, 1:10]
