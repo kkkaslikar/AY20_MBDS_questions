@@ -3,6 +3,7 @@ title: "Code for Question 4"
 output: 
   html_notebook:
     number_sections: true
+    toc: true
     toc_depth: 3
 ---
 
