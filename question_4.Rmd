@@ -4,7 +4,6 @@ output:
   html_notebook:
     number_sections: true
     toc_depth: 3
-    toc_float: true
 ---
 
 
