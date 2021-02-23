@@ -82,7 +82,7 @@ $$
 
 $$x_1 = index - \floor{\frac{index}{L_1}}$$
 
-## Derivation for n-dimensions
+## Question 7.1b: Derivation for n-dimensions
 
 ### Coordinates to index
 
