@@ -357,9 +357,9 @@ As discussed [above](#overall-approach), the strategy involves drawing a horizon
 
 The horizontal intersects are the intersection points of the horizontal line with all the lines in the polygon, and the vertical intersects are the intersection points of the vertical line with the polygon.
 
-To get the coordinates of the intersection point of the one of the lines of the polygon with the vertical line $x = a$, we would have to substitute $x = a$ in the equation of that line of the polygon.
+To get the coordinates of the intersection point of one of the lines of the polygon with the vertical line $x = a$, we would have to substitute $x = a$ in the equation of that line of the polygon.
 
-Similarly, the coordinates of the intersection point of the one of the lines of the polygon with the horizontal line $y = b$, we would have to substitute $y = b$ in the equation of that line of the polygon.
+Similarly, the coordinates of the intersection point of one of the lines of the polygon with the horizontal line $y = b$, we would have to substitute $y = b$ in the equation of that line of the polygon.
 
 The following two functions, `get.intersect.v` and `get.intersect.h`, get the intersection points of a polygon line with the vertical and horizontal lines respectively. They also ensure that such an intersection is even possible. For example if the polygon line also happens to be of the form $y = c$, then it will not have an intersection point with the horizontal line. In that case, `get.intersect.h` returns `NULL`. `get.intersect.v` does the same for vertical polygon lines.
 
