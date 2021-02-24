@@ -58,7 +58,7 @@ No matter whatever objective number is to be summed to, to reach the bottom righ
 
 Consider the example given in the question sheet. Assuming that the matrix is as above, and the first number to be summed to is 19, then after removing the invariant portion of the sum (10), what remains is $16 - 10 = 9$. Hence, given this information, we have to determine how to reach the sum of 9 in number of rows -1 = 3 rightward operations. This problem can be rephrased as the following:
 
-Given a specific distance (9), you *have* to take to reach that distance within a specific number of steps (3). In addition, the distance that you can cover in each step (hereafter called step size) can only take very specific values (in this case, the values are [1, 2, 3, 4], which are the row indices of the matrix). Which step sizes will you select for each step?
+Given a specific distance (9), you *have* to reach that distance within a specific number of steps (3). In addition, the distance that you can cover in each step (hereafter called step size) can only take very specific values (in this case, the values are [1, 2, 3, 4], which are the row indices of the matrix). Which step sizes will you select for each step?
 
 The problem can be visualised as below:
 
@@ -71,9 +71,9 @@ To cover a distance of 6 within 3 steps, we first take only one step with a dist
 
 A simple way to prevent covering too much distance by taking $n$ steps of size $k$ is to consider the following question:
 
-Is the distance remaining ($d_r$) after covering a distance of $n*k$ units = the number of steps remaining to be used? 
+Is the distance remaining (referred to hereafter as $d_r$) after covering a distance of $n*k$ units equal to the number of steps remaining to be used? 
 
-This is because if the $d_r$ = the number of steps remaining, then $d_r$ can be covered by simply taking $d_r$ steps of size 1. If this is not true, then we can try taking $n-1$ steps of size $k$ and check for this condition again, and keep going in this manner until we find the right number of steps to take of size $k$. If this number of steps is 0, then we can consider a smaller step size $k-1$ and retry the process all over again, until the condition becomes true.
+This is because if $d_r$ = remaining number of steps, then $d_r$ can be covered by simply taking $d_r$ steps of size 1. If this is not true, then we can try taking $n-1$ steps of size $k$ and check for this condition again, and keep going in this manner until we find the right number of steps to take of size $k$. If this number of steps is 0, then we can consider a smaller step size $k-1$ and retry the process all over again, until the condition becomes true.
 
 Once we determine exactly how many steps of certain step sizes we should take we simply translate that to the rightward operations to perform. For instance, in the above case of reaching the number 19 (remaining distance of 9 after subtracting the contribution of the downward operations), the solution was to take two steps of size 4 and 1 step of size 1. This translates to two rightward operations in row 4 and one rightward operation in row 1, interspersed by downward operations.
 
@@ -148,31 +148,33 @@ This loop is the main workhorse of the code, and checks the conditions mentioned
 
 
 ```{r}
-for(k in seq_along(r.step.options)){
+for(k in seq_along(r.step.options)){ # iterating along indices of r.step.options
   
-  r.step.distance <- r.step.options[k]
-  steps.taken <- distance.togo %/% r.step.distance
-  distance.covered <- r.step.distance*steps.taken
+  r.step.distance <- r.step.options[k]  # current step size in consideration
+  steps.taken <- distance.togo %/% r.step.distance  # finding how many steps of size r.step.distance can be taken taken without exceeding distance; uses floor division
+  distance.covered <- r.step.distance*steps.taken # finding out the distance covered using "steps.taken" number of steps of size "r.step.distance"
   
-  while(steps.taken > 0) {
-    distance.covered <- r.step.distance*steps.taken
-    remaining.distance <- distance.togo - distance.covered
-    remaining.n.r.steps <-n.r.step - steps.taken
+  while(steps.taken > 0) {   # if any steps of current size can can be taken at all 
+    distance.covered <- r.step.distance*steps.taken  # finding out the distance covered using "steps.taken" number of steps of size "r.step.distance"
+    remaining.distance <- distance.togo - distance.covered # distance remaining after taking a certain number of steps of specified size
+    remaining.n.r.steps <-n.r.step - steps.taken  # number of rightward steps remaining after taking steps
     
-    if(remaining.distance >= remaining.n.r.steps) {
-      break
-    } else {
-      steps.taken <- steps.taken - 1
+    if(remaining.distance >= remaining.n.r.steps) {  # if remaining distance is greater or equal to the number of steps remaining, this combination of step size and step number is viable
+      break        # break the loop; 
+    } else {       # if remaining distance < remaining.n.r.steps
+      steps.taken <- steps.taken - 1   # try reducing the number of steps taken and check for viability again in the code above
     }
   }
   
-  idx[r.step.distance] <- steps.taken
+  idx[r.step.distance] <- steps.taken   # final decision of the number of steps to be taken for given step size; this value has passed the conditions in the above while loop
   
-  if(remaining.distance > remaining.n.r.steps){
-    distance.togo <- remaining.distance
+  # if conditions in the above while loop have been cleared update the values of distance.togo and n.r.steps
+  
+  if(remaining.distance > remaining.n.r.steps){  
+    distance.togo <- remaining.distance   
     n.r.step <- remaining.n.r.steps
 
-  }else if(remaining.distance == remaining.n.r.steps){
+  }else if(remaining.distance == remaining.n.r.steps){ # if remaining distance = number of remaining steps, the other step sizes do not need to be checked for viability; loop can be cut short, and the remaining distance can simply be covered by taking "remaining.distance" number of steps of size 1
     distance.togo <- remaining.distance
     n.r.step <- remaining.n.r.steps
     r.step.distance <- 1
@@ -185,16 +187,16 @@ for(k in seq_along(r.step.options)){
     idx[r.step.distance] <- steps.taken
   }
   
-  if(n.r.step == 0 & distance.togo == 0 & sum(idx) == (c-1)){
+  if(n.r.step == 0 & distance.togo == 0 & sum(idx) == (c-1)){  # checking if number of steps have been expended, distance has been covered and the number of steps decided upon is the right number "sum(idx) == c-1")
     print("Done")
-    break
+    break                   # break the loop upon being done
   }
 }
 ```
 
 After this loop, the number and position of rightward operations required is stored in the variable `idx`.
 
-The data stored in `idx` is basically saying that:
+The data stored in `idx` below is basically saying that:
 
 1. In row 1, 6 rightward operations are required (please note that R uses 1-based indexing; hence, row index 1 is the actual first row).
 2. In row 5, one rightward operation is required and;
